@@ -1,3 +1,14 @@
+# xm-k5-firmware (English summary)
+
+> **This fork is documented in Chinese - see [README.md](./README.md) for the authoritative**
+> xm-k5-firmware documentation (three-layer emergency alarm, Live-VFO seek, menu zone
+> badges, 60KB flash budget, build via GitHub Actions).
+>
+> The text below is the upstream LOSEHU README kept for reference; many listed features
+> (Doppler, SMS, SI4732, pinyin input) are intentionally removed in this fork.
+
+---
+
 **Read this in other languages: [English](./README_en.md), [中文](./README.md).**
 
 **语言版本: [English](./README_en.md), [中文](./README.md).**
