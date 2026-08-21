@@ -247,6 +247,7 @@ void XM_EMERGENCY_Tick500ms(void)
 void XM_EMERGENCY_OnMdcRx(uint8_t op, uint8_t arg, uint16_t unit_id)
 {
     (void)arg;
+    (void)unit_id;   // id is shown by the stock MDC popup path (contact/ID line)
 
     if (op == 0x00)
     {

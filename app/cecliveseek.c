@@ -63,7 +63,7 @@ static uint16_t CEC_GetRssi(void)
 static void DrawFrequencySmall(uint32_t _frequency, int _startX, int _lineNumber)
 {
     char strBuff[16];
-    sprintf(strBuff, "%3u.%03u", _frequency / 100000, (_frequency / 100) % 1000);
+    sprintf(strBuff, "%3u.%03u", (unsigned) (_frequency / 100000), (unsigned) ((_frequency / 100) % 1000));
     memset(gFrameBuffer[_lineNumber], 0, 128);
     UI_PrintStringSmall(strBuff, _startX, 127, _lineNumber);
 }
@@ -200,6 +200,9 @@ void CEC_ApplyChangeRXFreq(int _applyOption)
 }
 
 // ------------------------- persistence (xm) -----------------------------
+
+// xm: declared here (the base has no scheduler.h); defined in scheduler.c
+extern uint32_t SCHEDULER_GetTickCount10ms(void);
 
 // 10ms tick count (xm): mirrors uvk5cec millis10(), reading the base
 // scheduler tick counter (scheduler.c gGlobalSysTickCounter) via accessor
