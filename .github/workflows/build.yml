@@ -52,10 +52,18 @@ jobs:
             exit 1
           fi
 
+      - name: Rename artifacts to self-describing names
+        run: |
+          # XMK.bin  -> xm-flash-XMK.bin      : the packed image you FLASH (has *OEFW header + CRC)
+          # firmware.bin -> xm-raw-firmware.bin: bare flash dump (debug/SWD rescue use only)
+          mv XMK.bin xm-flash-XMK.bin
+          mv firmware.bin xm-raw-firmware.bin
+          ls -l xm-*.bin
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: xm-firmware
           path: |
-            XM*.bin
-            firmware.bin
+            xm-flash-*.bin
+            xm-raw-firmware.bin

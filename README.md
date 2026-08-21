@@ -38,7 +38,12 @@
 
 ## 编译与下载
 
-推送到 GitHub 后 Actions 自动构建（archlinux + arm-none-eabi-gcc 13.2，LTO），产物在 artifact **xm-firmware**（`XMK.bin`）。CI 内置 **60KB Flash 硬门禁**，超线自动打印最大符号清单。
+推送到 GitHub 后 Actions 自动构建（archlinux + arm-none-eabi-gcc 13.2，LTO），artifact **xm-firmware** 内含两个自解释命名的文件：
+
+- **`xm-flash-XMK.bin`** - 刷机用这个（含 *OEFW-BI2XM 版本头 + CRC16）
+- `xm-raw-firmware.bin` - 裸 Flash 镜像（调试/SWD 救援用，不能直接刷）
+
+CI 内置 **60KB Flash 硬门禁**，超线自动打印最大符号清单。
 
 本地编译（任意平台，与官方发布同源环境）：
 
