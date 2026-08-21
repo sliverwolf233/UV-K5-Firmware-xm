@@ -1,0 +1,30 @@
+# xm-k5-firmware editor config - encoding policy
+#
+# Three zones in this tree (do NOT let an IDE "normalize" encodings):
+#   1. GB2312 sources (upstream) - the Chinese bytes ARE font indices for
+#      the EEPROM renderer; converting them to UTF-8 bricks the UI text.
+#   2. Pure-ASCII sources - everything else we touch; keep it that way.
+#   3. UTF-8 documents (*.md, upstream CMSIS/openocd files) - GitHub
+#      renders UTF-8 only; do not convert to GB2312.
+root = true
+
+[*]
+end_of_line = crlf
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+# GB2312 zone (upstream) - listed explicitly, opt-in per file
+[app/menu.c]
+charset = gb2312
+[app/main.c]
+charset = gb2312
+[sram-overlay.c]
+charset = gb2312
+
+# our sources are pure ASCII - force it so slips are visible
+[{app/rega.c,app/rega.h,app/cecliveseek.c,app/cecliveseek.h,app/emergency.c,app/emergency.h,ui/xm_menu.c,ui/xm_menu.h}]
+charset = us-ascii
+
+# documents stay UTF-8 for GitHub rendering
+[*.md]
+charset = utf-8

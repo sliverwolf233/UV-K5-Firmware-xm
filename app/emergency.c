@@ -6,7 +6,7 @@
  * Sequencing (spec section 4):
  *   side key 1 long -> ACTION_Emergency()
  *     1. TX_freq_check(gTxVfo TX frequency)
- *          fail  -> L1 screamer still runs, screen shows 禁止发射
+ *          fail  -> L1 screamer still runs, screen shows TX DISABLE
  *                   (RADIO_SetVfoState(VFO_STATE_TX_DISABLE)), no RF layers
  *          ok    -> continue
  *     2. prep tone 1kHz x3 (local speaker, no RF)
@@ -45,7 +45,7 @@
 
 #define XM_EEPROM_EMERGENCY_MODE_ADDR 0x38000   // spec section 8 private area
 
-uint8_t gXmEmergencyMode = XM_EMG_LOCAL_REMOTE;  // factory default 本地+远程
+uint8_t gXmEmergencyMode = XM_EMG_LOCAL_REMOTE;  // factory default: local+remote
 bool    gXmEmergencyRunning = false;
 bool    gXmEmergencyTxBlocked = false;
 
@@ -92,7 +92,7 @@ void ACTION_Emergency(void)
     if (gXmEmergencyMode == XM_EMG_OFF)
         return;   // feature disabled in menu
 
-    // -- step 1: TX whitelist check FIRST (spec: TX_freq_check 先行) ----
+    // -- step 1: TX whitelist check FIRST (spec: TX_freq_check runs before RF) ----
     gXmEmergencyTxBlocked = false;
 
     RADIO_SelectVfos();
@@ -100,7 +100,7 @@ void ACTION_Emergency(void)
     {
         // blocked: L1 still sounds (local alert), RF layers suppressed
         gXmEmergencyTxBlocked = true;
-        RADIO_SetVfoState(VFO_STATE_TX_DISABLE);   // screen: 禁止发射
+        RADIO_SetVfoState(VFO_STATE_TX_DISABLE);   // screen shows TX DISABLE
     }
 
     // -- step 2..4 handled by the 500ms sequencer -----------------------

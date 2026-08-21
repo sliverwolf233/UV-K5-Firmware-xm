@@ -26,10 +26,10 @@
 
 // four-position mode stored at EEPROM 0x38000 (spec section 8)
 typedef enum {
-    XM_EMG_OFF = 0,       // 关
-    XM_EMG_LOCAL_ONLY,    // 仅本地 (L1)
-    XM_EMG_REMOTE_ONLY,   // 仅远程 (L2 + L3)
-    XM_EMG_LOCAL_REMOTE   // 本地+远程 (L1 + L2 + L3) - default
+    XM_EMG_OFF = 0,       // off
+    XM_EMG_LOCAL_ONLY,    // local only (L1)
+    XM_EMG_REMOTE_ONLY,   // remote only (L2 + L3)
+    XM_EMG_LOCAL_REMOTE   // local + remote (L1 + L2 + L3) - default
 } XmEmergencyMode_t;
 
 extern uint8_t gXmEmergencyMode;        // XmEmergencyMode_t
