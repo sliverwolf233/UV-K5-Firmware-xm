@@ -1,12 +1,17 @@
-on: #指定触发 workflow 的事件
-  push: #当代码推送时触发
+# xm-k5-firmware CI - single fixed-target build (Makefile hard-coded block)
+# Base workflow from uv-k5-firmware-custom (LOSEHU), adapted for XM builds.
+name: build
 
-jobs: #定义工作流程
-  build: #工作流名称为 build
-    runs-on: ubuntu-22.04 #使用 Ubuntu 22.04 环境执行
-    container: #定义容器
-      image: archlinux:latest #使用 Arch Linux 镜像
-    steps: #定义工作流程中的步骤
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    container:
+      image: archlinux:latest
+    steps:
       - name: Install dependencies
         run: |
           pacman -Syyu --noconfirm \
@@ -15,24 +20,42 @@ jobs: #定义工作流程
             arm-none-eabi-newlib \
             git \
             python-pip \
-            python-crcmod \
+            python-crcmod
 
-      - name: Checkout #拉取代码
-        uses: actions/checkout@v4 #使用 GitHub Actions 提供的 checkout 动作
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: safe.directory #设置 git 的 safe.directory 配置
-        run: git config --global --add safe.directory /__w/uv-k5-firmware-custom/uv-k5-firmware-custom
+      - name: safe.directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Make #执行 make 命令
-        run: make full  #编译项目
+      - name: Build (fixed XM target)
+        run: make build
 
-      - name: size #计算 firmware 大小
-        run: arm-none-eabi-size firmware #使用 arm-none-eabi-size 命令计算固件大小
+      - name: Size report (60KB flash limit)
+        run: |
+          arm-none-eabi-size firmware
+          TEXT=$(arm-none-eabi-size firmware | awk 'NR==2{print $1}')
+          DATA=$(arm-none-eabi-size firmware | awk 'NR==2{print $2}')
+          FLASHUSE=$((TEXT + DATA))
+          echo "Flash usage: ${FLASHUSE} / 61440 bytes"
+          awk "BEGIN{printf \"Flash usage: %.1f%% of 60KB\\n\", ${FLASHUSE}*100/61440}"
+          echo "flashuse=$FLASHUSE" >> "$GITHUB_OUTPUT"
+        id: size
 
-      - name: Upload Artifact #上传固件文件
-        uses: actions/upload-artifact@v4 #使用 GitHub Actions 提供的 upload-artifact 动作
+      - name: Enforce 60KB red line
+        run: |
+          FLASHUSE=${{ steps.size.outputs.flashuse }}
+          if [ "$FLASHUSE" -gt 61440 ]; then
+            echo "::error::Firmware exceeds 60KB red line (${FLASHUSE} bytes, over by $((FLASHUSE - 61440)))"
+            echo '--- top symbols (for trimming) ---'
+            arm-none-eabi-nm --size-sort firmware | tail -25
+            exit 1
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: firmware #设置 artifact 名称为 firmware
-          path: LOSEHU*.bin #上传文件路径为 LOSEHU*.bin
-
-
+          name: xm-firmware
+          path: |
+            XM*.bin
+            firmware.bin

@@ -30,6 +30,8 @@
 
 #include "app/generic.h"
 #include "app/main.h"
+#include "app/cecliveseek.h"  // xm: Live-VFO seek hook
+#include "app/cecliveseek.h"  // xm: Live-VFO seek hook
 #include "app/scanner.h"
 
 #ifdef ENABLE_SPECTRUM
@@ -736,6 +738,9 @@ cnt_i--;
                 BK4819_SetFrequency(frequency);
                 BK4819_RX_TurnOn();
                 gRequestSaveChannel = 1;
+#ifdef ENABLE_SPECTRUM
+                CEC_ApplyChangeRXFreq(11 + Direction);  // xm: Live-VFO live RSSI while stepping
+#endif
                 return;
             }
 

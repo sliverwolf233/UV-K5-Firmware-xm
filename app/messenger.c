@@ -16,6 +16,7 @@
 #include "ui/ui.h"
 #include "driver/uart.h"
 #include "stdbool.h"
+#include "app/emergency.h"  // xm: MDC emergency rx hook
 
 #if defined(ENABLE_UART)
 #include "driver/uart.h"
@@ -622,7 +623,7 @@ void solve_sign(const uint16_t interrupt_bits) {
                         &mdc1200_unit_id)) {
                     mdc1200_rx_ready_tick_500ms = 2 * 5;  // 6 second MDC display time
                     gUpdateDisplay = true;
-
+                    XM_EMERGENCY_OnMdcRx(mdc1200_op, mdc1200_arg, mdc1200_unit_id);  // xm: op 0x00/0x20 handling
                 }
 
                 mdc1200_rx_buffer_index = 0;

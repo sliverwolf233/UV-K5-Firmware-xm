@@ -35,6 +35,7 @@
 #include "ui/menu.h"
 #include "ui/ui.h"
 #include "chinese.h"
+#include "ui/xm_menu.h"  // xm: zone badge helpers
 
 void insertNewline(char a[], int index, int len) {
 
@@ -145,6 +146,9 @@ const t_menu_item MenuList[] =
                 {/*"Reset",*/  VOICE_ID_INITIALISATION, MENU_RESET,
                                参数复位}, // might be better to move this to the hidden menu items ?
 
+                {/*"SOS",*/    VOICE_ID_INVALID, MENU_EMERGENCY, "SOS"},      // xm: emergency alarm (label: font asset is fixed, ASCII per NOTICE)
+                {/*"SEEK",*/    VOICE_ID_INVALID, MENU_LIVESEEK, "SEEK"},     // xm: Live-VFO seek
+
                 {/*"",*/       VOICE_ID_INVALID, 0xff, "\x00"}  // end of list - DO NOT delete or move this this
         };
 
@@ -166,6 +170,23 @@ const char gSubMenu_W_N[][3] =//7
                 宽带,
                窄带
         };
+#endif
+// xm: emergency four-position + liveseek options (reuse existing font glyphs)
+#if ENABLE_CHINESE_FULL != 4 || defined(ENABLE_ENGLISH)
+const char gSubMenu_EMERGENCY[][11] = {"OFF", "LOCAL", "REMOTE", "L+R"};
+const char gSubMenu_LIVESEEK[][10]  = {"OFF", "MONITOR", "MON+SPEC"};
+#else
+const char gSubMenu_EMERGENCY[][18] = {
+        关闭,
+        本地响铃,
+        回复响应,
+        本地响铃回复响应
+};
+const char gSubMenu_LIVESEEK[][11] = {
+        关闭,
+        监听,
+        "MON+SPEC"
+};
 #endif
 #if ENABLE_CHINESE_FULL == 4
 const char gSubMenu_PONMSG[][5]={
@@ -542,6 +563,9 @@ const t_sidefunction SIDEFUNCTIONS[] =
 #ifdef ENABLE_BLMIN_TMP_OFF
                 {"BLMIN\nTMP OFF",  ACTION_OPT_BLMIN_TMP_OFF}, 		//BackLight Minimum Temporay OFF
 #endif
+#ifdef ENABLE_ALARM
+                {"SOS",             ACTION_OPT_EMERGENCY},   // xm: three-layer emergency alarm
+#endif
         };
 const t_sidefunction *gSubMenu_SIDEFUNCTIONS = SIDEFUNCTIONS;
 const uint8_t gSubMenu_SIDEFUNCTIONS_size = ARRAY_SIZE(SIDEFUNCTIONS);
@@ -621,6 +645,10 @@ void UI_DisplayMenu(void) {
     if (!isInPinyin)
 #endif
     UI_PrintStringSmall(String, 2, 0, 6);
+#ifdef ENABLE_MDC1200
+    // xm: zone badge bottom-right (spec section 5)
+    UI_PrintStringSmall(XM_MENU_ZoneBadge(XM_MENU_ZoneOf(MenuList[gMenuCursor < ARRAY_SIZE(MenuList) ? gMenuCursor : 0].menu_id)), 108, 0, 6);
+#endif
 #ifdef ENABLE_PINYIN//拼音取消显示
     if (!isInPinyin)
 #endif
@@ -1321,6 +1349,14 @@ void UI_DisplayMenu(void) {
                 strcpy(String, gSubMenu_PONMSG[gSubMenuSelection]);
                 break;
 #endif
+        case MENU_EMERGENCY:   // xm: four-position (existing font macros)
+            strcpy(String, gSubMenu_EMERGENCY[gSubMenuSelection]);
+            break;
+
+        case MENU_LIVESEEK:    // xm: live-seek mode
+            strcpy(String, gSubMenu_LIVESEEK[gSubMenuSelection]);
+            break;
+
         case MENU_ROGER:
             strcpy(String, gSubMenu_ROGER[gSubMenuSelection]);
 
@@ -1546,6 +1582,16 @@ void UI_ShowChineseMenu() {
 #if ENABLE_CHINESE_FULL == 4 && !defined(ENABLE_ENGLISH)
     uint8_t name[15];
     name[15] = 0;
+    if (gMenuCursor >= 53) {              // xm-added menus: ASCII labels (font asset fixed)
+        const char *xm_name = (gMenuCursor == 53) ? "SOS" : "SEEK";
+        memset(name, 0, sizeof(name));
+        memcpy(name, xm_name, strlen(xm_name));
+        cnt_menu = 0;                      // ASCII path below
+        size_menu = strlen(xm_name) * 7;
+        UI_PrintStringSmall((const char *) name, size_menu < 48 ? (48 - size_menu) / 2 : 0, 0, 0);
+        show_move_flag = 1;
+        return;
+    }
     EEPROM_ReadBuffer(0x028B0 + gMenuCursor * 14, name, 14);
     for (cnt_menu = 0; cnt_menu < 7 && name[cnt_menu]!= 0; cnt_menu++) {
         if (is_chn(/*MenuList[gMenuCursor].name[cnt_menu]*/name[cnt_menu]) != 255)//中文

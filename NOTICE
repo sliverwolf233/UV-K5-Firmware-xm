@@ -1,0 +1,76 @@
+xm-k5-firmware — NOTICE
+=======================
+
+This product is custom firmware for the Quansheng UV-K5(K6), forked from
+the LOSEHU code base (uv-k5-firmware-custom). It is licensed under the
+Apache License, Version 2.0. It is NOT distributed in the name of LOSEHU.
+
+Upstream code and copyrights (preserved unchanged):
+  * Dual Tachyon — original UV-K5 firmware (app/, driver/, ui/, bsp/...)
+  * egzumer — firmware base lineage (many features across the tree)
+  * OneOfEleven / Joaquim Org — spectrum, am-fix and related components
+  * losehu — the uv-k5-firmware-custom (LOSEHU) Chinese firmware base
+  * KD8CEC (Copyright 2023) — Live-VFO "Live Seek" block, ported from
+    uvk5cec/ceccommon.c (the block the author marked
+    "COPY BELOW TO OTHER FIRMWARE") into app/cecliveseek.c
+  * Markus Bärtschi (Copyright 2025, markusb) — REGA ZVEI five-tone
+    emergency sequence, ported from Dondji/App/app/rega.c into
+    app/rega.c (BD1AHN header lineage preserved in that repository)
+
+xm-k5-firmware modifications (Apache-2.0, see 项目总规格与开发指南.md):
+  1. Makefile: fixed enable block (spec §二), PACKED_FILE_SUFFIX XM.
+  2. .github/workflows/build.yml: single-target CI build + 60KB gate
+     (docker-image.yml and the stray "h --force-with-lease origin main"
+     and payment/ leftovers removed from the fork).
+  3. app/rega.c/.h — ZVEI port (include paths only; L3 alarm layer).
+  4. app/cecliveseek.c/.h — Live-VFO port; three hooks: 500ms tail
+     (main.c), frequency step (app/main.c), MENU_LIVESEEK (menu).
+     CommBuff guarded by CommBuffUsingType arbitration. Mode persisted
+     at EEPROM 0x38003.
+  5. app/emergency.c/.h — three-layer emergency alarm (spec §四):
+     TX_freq_check first (blocked -> local screamer only + screen
+     禁止发射 via RADIO_SetVfoState(VFO_STATE_TX_DISABLE)), 1kHz x3
+     prep tones, then per four-position mode: L1 base wail / L2 MDC
+     op=0x00 (+auto op=0x20 ACK) / L3 ZVEI 21414. Mode at 0x38000.
+  6. ACTION_OPT_EMERGENCY added to settings.h/action.c table and
+     SIDEFUNCTIONS ("SOS"); factory default side key 1 long press
+     (settings.c).
+  7. Menus: MENU_EMERGENCY (four positions, existing font glyphs
+     关闭/本地响铃/回复响应/本地响铃回复响应) and MENU_LIVESEEK added.
+  8. ui/xm_menu.c/.h — menu zone badge "[1]".."[6]" (spec §五) and CSS
+     tri-state helpers.
+  9. M4.2: two-digit direct jump gets a 2s timeout; cross-zone
+     navigation gives a short beep.
+ 10. M4.3: identical-VFO main-screen collapse with big digits
+     (EEPROM 0x02480 font) + A/B corner badge (ui/main.c).
+ 11. M4.4 (DROPPED per owner decision - CSS menus stay stock):
+     the merged MENU_CSS_DCS/MENU_CSS_CTCS experiment was fully reverted;
+     the four stock CSS menus are byte-identical to upstream.
+ 12. M4.5: power-on PTT+side-key hidden-menu combo removed from
+     helper/boot.c (the four ex-hidden items are normal system-zone
+     menus; RESET already double-confirms via gAskForConfirmation).
+ 13. scheduler.c: SCHEDULER_GetTickCount10ms() accessor (millis10).
+
+Encoding note: GB2312-encoded sources (app/menu.c, app/main.c,
+sram-overlay.c, ...) were edited ASCII-only; their GBK byte streams are
+byte-identical to upstream (verified). New labels for the two new menus
+use ASCII ("SOS", "SEEK", "DCS", "CTCS") because the EEPROM font asset
+is fixed; option strings reuse existing chinese.h glyph macros.
+
+EEPROM usage (2Mib, spec §八): 0x38000 emergency mode, 0x38001 reserved
+(prep-tone switch, unused), 0x38002 reserved (zone memory, unused),
+0x38003 Live-VFO mode.
+
+Measured build data (arm-gnu-toolchain 13.2.Rel1, 2026-08):
+  * xm non-LTO : text 65,732 + data 292 = 66,024 bytes (pinyin off) (100K-FLASH probe)
+  * base same config non-LTO : 66,344 bytes  -> xm delta +2,184 bytes
+  * nm --size-sort: no dead code in image; largest symbols are stock
+    features (UI_DisplayMenu 3540 / APP_RunSpectrum 2940 / UI_DisplayMain
+    2664 ...) required by spec §二
+  * LTO link cannot run in this sandbox (ld's lto-wrapper pipe is denied
+    by the platform); CI performs the final LTO build + 60KB gate. The LTO
+    branch additionally carries -ffunction-sections -fdata-sections
+    -fno-unwind-tables (never used by the base under LTO).
+  * Owner decision: ENABLE_PINYIN=0 (T9 input dropped for the 60KB rega.c test sequence 21301 + decorative LED
+    flashes removed, emergency.c write-only counter removed (alarm
+    sequence 21414 and all spec behaviour intact).

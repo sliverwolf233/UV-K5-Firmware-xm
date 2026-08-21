@@ -33,6 +33,7 @@
 #endif
 
 #include "app/scanner.h"
+#include "app/emergency.h"  // xm: ACTION_OPT_EMERGENCY
 #include "audio.h"
 #include "bsp/dp32g030/gpio.h"
 
@@ -110,8 +111,9 @@ void (*action_opt_table[])(void) = {
         [ACTION_OPT_WIDTH] = &ACTION_WIDTH,
 #ifdef ENABLE_SIDEFUNCTIONS_SEND
         [ACTION_OPT_SEND_CURRENT] = &ACTION_SEND_CURRENT,
-        [ACTION_OPT_SEND_OTHER] = &ACTION_SEND_OTHER
+        [ACTION_OPT_SEND_OTHER] = &ACTION_SEND_OTHER,
 #endif
+        [ACTION_OPT_EMERGENCY] = &ACTION_Emergency   // xm: emergency alarm
 };
 
 static_assert(ARRAY_SIZE(action_opt_table) == ACTION_OPT_LEN);

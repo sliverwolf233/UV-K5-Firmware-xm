@@ -42,14 +42,14 @@ BOOT_Mode_t BOOT_GetMode(void) {
         SYSTEM_DelayMs(20);
     }
 
+    // xm-k5-firmware: hidden-menu power-on key combo removed (spec section 5 -
+    // the four former hidden items are normal system-zone menus now).
+    // Only the AIRCOPY boot entry is kept.
     if (Keys[0] == Keys[1]) {
         gKeyReading0 = Keys[0];
         gKeyReading1 = Keys[0];
 
         gDebounceCounter = 2;
-
-        if (Keys[0] == KEY_SIDE1)
-            return BOOT_MODE_F_LOCK;
 
 #ifdef ENABLE_AIRCOPY
         if (Keys[0] == KEY_SIDE2)

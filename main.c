@@ -39,6 +39,8 @@
 #include "app/uart.h"
 #include "string.h"
 #include "app/messenger.h"
+#include "app/cecliveseek.h"  // xm: Live-VFO seek on frequency step
+#include "app/emergency.h"   // xm: emergency mode init
 
 #ifdef ENABLE_DOPPLER
 
@@ -181,10 +183,14 @@ void Main(void) {
 #endif
 
 #if ENABLE_CHINESE_FULL == 0
-    gMenuListCount = 52;
+    gMenuListCount = 52 + 2;
 #else
-    gMenuListCount = 53;
+    gMenuListCount = 53 + 2;
 #endif
+    // xm: +2 = MENU_EMERGENCY + MENU_LIVESEEK
+
+    XM_EMERGENCY_Init();    // xm: load emergency mode from EEPROM 0x38000
+    CEC_LiveSeek_Load();    // xm: load Live-VFO mode from EEPROM 0x38003
     gKeyReading0 = KEY_INVALID;
     gKeyReading1 = KEY_INVALID;
     gDebounceCounter = 0;
@@ -306,6 +312,9 @@ void Main(void) {
 
         if (gNextTimeslice_500ms) {
             APP_TimeSlice500ms();
+#ifdef ENABLE_SPECTRUM
+            CEC_TimeSlice500ms();  // xm: Live-VFO seek buffer housekeeping
+#endif
         }
 
 

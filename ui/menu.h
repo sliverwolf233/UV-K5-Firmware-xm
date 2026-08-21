@@ -145,13 +145,24 @@ enum {
     MENU_F2LONG,
     MENU_MLONG,
 #endif
-    MENU_BATTYP
+    MENU_BATTYP,
+    MENU_EMERGENCY,   // xm: emergency alarm four-position (spec section 4)
+    MENU_LIVESEEK     // xm: Live-VFO seek mode (CEC port)
 };
 
 extern const t_menu_item MenuList[];
 #if ENABLE_CHINESE_FULL == 4
 
 extern const char gSubMenu_PONMSG[3][5];
+#endif
+
+// xm additions
+#if ENABLE_CHINESE_FULL != 4 || defined(ENABLE_ENGLISH)
+extern const char gSubMenu_EMERGENCY[][11];
+extern const char gSubMenu_LIVESEEK[][10];
+#else
+extern const char gSubMenu_EMERGENCY[][18];
+extern const char gSubMenu_LIVESEEK[][11];
 #endif
 
 //extern const char        gSubMenu_TXP[3][2];//5
@@ -293,6 +304,9 @@ extern const t_sidefunction *gSubMenu_SIDEFUNCTIONS;
 //extern const t_sidefunction SIDEFUNCTIONS[];
 
 extern bool gIsInSubMenu;
+
+// xm: two-digit direct jump timeout (2s) - see app/menu.c
+extern uint8_t gXmMenuJumpTimeout_500ms;
 
 extern uint8_t gMenuCursor;
 

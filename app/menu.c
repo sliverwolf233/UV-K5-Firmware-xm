@@ -29,6 +29,9 @@
 #include "app/generic.h"
 #include "app/menu.h"
 #include "app/scanner.h"
+#include "app/emergency.h"  // xm: emergency mode menu
+#include "app/cecliveseek.h"  // xm: liveseek menu
+#include "ui/xm_menu.h"  // xm: css tri-state
 #include "audio.h"
 #include "board.h"
 #include "bsp/dp32g030/gpio.h"
@@ -54,6 +57,9 @@
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 #endif
+
+// xm: two-digit direct jump timeout (spec section 5) - decremented from APP_TimeSlice500ms
+uint8_t gXmMenuJumpTimeout_500ms = 0;
 
 //uint8_t gUnlockAllTxConfCnt;
 
@@ -149,7 +155,6 @@ void MENU_CssScanFound(void) {
     } else if (gScanCssResultType == CODE_TYPE_CONTINUOUS_TONE) {
         gMenuCursor = UI_MENU_GetMenuIdx(MENU_R_CTCS);
     }
-
     MENU_ShowCurrentSetting();
 
     gUpdateStatus = true;
@@ -196,6 +201,16 @@ int MENU_GetLimits(uint8_t menu_id, int32_t *pMin, int32_t *pMax) {
         case MENU_F_LOCK:
             *pMin = 0;
             *pMax = ARRAY_SIZE(gSubMenu_F_LOCK) - 1;
+            break;
+
+        case MENU_EMERGENCY:   // xm: s/,0//,0+
+            *pMin = 0;
+            *pMax = 3;
+            break;
+
+        case MENU_LIVESEEK:    // xm: s/,/,+1
+            *pMin = 0;
+            *pMax = 2;
             break;
 
         case MENU_MDF:
@@ -877,6 +892,16 @@ void MENU_AcceptSetting(void) {
             gEeprom.BATTERY_TYPE = gSubMenuSelection;
             break;
 
+        case MENU_EMERGENCY:   // xm: persist to EEPROM 0x38000
+            gXmEmergencyMode = (uint8_t) gSubMenuSelection;
+            XM_EMERGENCY_Save();
+            return;
+
+        case MENU_LIVESEEK:    // xm: persist to EEPROM 0x38003
+            CEC_LiveSeekMode = (uint8_t) gSubMenuSelection;
+            CEC_LiveSeek_Save();
+            return;
+
 #ifdef ENABLE_CUSTOM_SIDEFUNCTIONS
             case MENU_F1SHRT:
             case MENU_F1LONG:
@@ -928,6 +953,14 @@ void MENU_ShowCurrentSetting(void) {
 
         case MENU_RESET:
             gSubMenuSelection = 0;
+            break;
+
+        case MENU_EMERGENCY:   // xm
+            gSubMenuSelection = gXmEmergencyMode;
+            break;
+
+        case MENU_LIVESEEK:    // xm
+            gSubMenuSelection = CEC_LiveSeekMode;
             break;
 
         case MENU_R_DCS:
@@ -1389,6 +1422,10 @@ static void MENU_Key_0_to_9(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld) {
 
     INPUTBOX_Append(Key);
 
+    // xm: 2s timeout for partial two-digit jump input (list mode only)
+    if (!gIsInSubMenu && gInputBoxIndex == 1)
+        gXmMenuJumpTimeout_500ms = 4;   // 4 x 500ms = 2s
+
     gRequestDisplayScreen = DISPLAY_MENU;
 
     if (!gIsInSubMenu) {
@@ -1397,6 +1434,8 @@ static void MENU_Key_0_to_9(KEY_Code_t Key, bool bKeyPressed, bool bKeyHeld) {
                 gInputBoxIndex = 0;
 
                 Value = (gInputBox[0] * 10) + gInputBox[1];
+
+                gXmMenuJumpTimeout_500ms = 0;   // xm: two digits complete
 
                 if (Value > 0 && Value <= gMenuListCount) {
                     gMenuCursor = Value - 1;
@@ -1840,6 +1879,7 @@ static void MENU_Key_STAR(const bool bKeyPressed, const bool bKeyHeld) {
         return;
 
     gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
+
 //输入法星模式切换
     if (UI_MENU_GetCurrentMenuId() == MENU_MEM_NAME && edit_index >= 0) {    // currently editing the channel name
 
@@ -1998,7 +2038,17 @@ static void MENU_Key_UP_DOWN(bool bKeyPressed, bool bKeyHeld, int8_t Direction) 
 #ifndef ENABLE_MDC1200
         uint8_t last_num = gMenuCursor;
 #endif
-        gMenuCursor = NUMBER_AddWithWraparound(gMenuCursor, key_dir * Direction, 0, gMenuListCount - 1);
+        {
+#ifdef ENABLE_MDC1200
+            // xm: cross-zone short beep (spec section 5)
+            const uint8_t zone_before = XM_MENU_ZoneOf(MenuList[gMenuCursor].menu_id);
+#endif
+            gMenuCursor = NUMBER_AddWithWraparound(gMenuCursor, key_dir * Direction, 0, gMenuListCount - 1);
+#ifdef ENABLE_MDC1200
+            if (XM_MENU_ZoneOf(MenuList[gMenuCursor].menu_id) != zone_before)
+                gBeepToPlay = BEEP_1KHZ_60MS_OPTIONAL;
+#endif
+        }
 #ifndef ENABLE_MDC1200
         if (last_num + 1 < 26 && gMenuCursor + 1 == 26)gMenuCursor++;
         else if (last_num + 1 == 27 && gMenuCursor + 1 == 26)gMenuCursor--;

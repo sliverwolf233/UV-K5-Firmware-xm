@@ -344,6 +344,13 @@ void UI_MAIN_TimeSlice500ms(void) {
 }
 // ***************************************************************************
 
+// xm: identical-VFO detection (spec section 6)
+static bool VfosIdentical(void) {
+    const VFO_Info_t *a = &gEeprom.VfoInfo[0], *b = &gEeprom.VfoInfo[1];
+    return a->freq_config_RX.Frequency == b->freq_config_RX.Frequency
+        && a->CHANNEL_SAVE == b->CHANNEL_SAVE && a->Modulation == b->Modulation;
+}
+
 void UI_DisplayMain(void) {
 
     char String[22];
@@ -390,6 +397,45 @@ void UI_DisplayMain(void) {
     }
 
     unsigned int activeTxVFO = gRxVfoIsActive ? gEeprom.RX_VFO : gEeprom.TX_VFO;
+
+    // xm: identical-VFO auto collapse (spec section 6)
+    // Collapse ONLY when the stock dual layout has nothing special to show;
+    // frequency/channel entry, DTMF input/call and scan-range keep dual view.
+    if (VfosIdentical()
+#ifdef ENABLE_DTMF_CALLING
+        && gDTMF_CallState == DTMF_CALL_STATE_NONE && !gDTMF_IsTx
+#endif
+        && !gDTMF_InputMode
+        && gInputBoxIndex == 0
+#ifdef ENABLE_SCAN_RANGES
+        && !gScanRangeStart
+#endif
+            ) {
+        char StringC[22];
+        const VFO_Info_t *xmVfo = &gEeprom.VfoInfo[gEeprom.TX_VFO];
+        uint32_t frequency = xmVfo->pRX->Frequency;
+        if (gCurrentFunction == FUNCTION_TRANSMIT)
+            frequency = xmVfo->pTX->Frequency;
+        sprintf(StringC, "%3u.%05u", frequency / 100000, frequency % 100000);
+#ifdef ENABLE_BIG_FREQ
+        if (frequency < _1GHz_in_KHz) {
+            UI_PrintStringSmall(StringC + 7, 113, 0, 2);   // last 2 small digits
+            StringC[7] = 0;
+            UI_DisplayFrequency(StringC, 32, 1, false);    // big digits, rows 1-2
+        } else
+#endif
+        {
+            UI_PrintStringSmall(StringC, 32, 0, 2);
+        }
+        // A/B corner badge (COMMON_SwitchVFOs toggles TX_VFO 0<->1)
+        UI_PrintStringSmall(gEeprom.TX_VFO == 0 ? "A" : "B", 2, 0, 1);
+        // VFO state stays visible in collapsed view (e.g. TX DISABLE)
+        if (VfoState[gEeprom.TX_VFO] != VFO_STATE_NORMAL
+            && VfoState[gEeprom.TX_VFO] < ARRAY_SIZE(VfoStateStr))
+            UI_PrintStringSmall(VfoStateStr[VfoState[gEeprom.TX_VFO]], 31, 0, 5);
+        goto xm_center_line;   // skip the dual-VFO layout, keep center-line logic
+    }
+
     for (unsigned int vfo_num = 0; vfo_num < 2; vfo_num++) {
         const unsigned int line0 = 0;  // text screen line
         const unsigned int line1 = 4;
@@ -867,6 +913,7 @@ void UI_DisplayMain(void) {
 #endif
         }
     }
+xm_center_line:
 #ifdef ENABLE_AGC_SHOW_DATA
     center_line = CENTER_LINE_IN_USE;
   UI_MAIN_PrintAGC(false);

@@ -42,6 +42,7 @@
 #include "app/main.h"
 #include "app/menu.h"
 #include "app/scanner.h"
+#include "app/emergency.h"  // xm: emergency sequencer tick
 
 #ifdef ENABLE_UART
 #include "app/uart.h"
@@ -1271,6 +1272,15 @@ void cancelUserInputModes(void) {
 void APP_TimeSlice500ms(void) {
     gNextTimeslice_500ms = false;
     bool exit_menu = false;
+
+#ifdef ENABLE_ALARM
+    XM_EMERGENCY_Tick500ms();  // xm: three-layer emergency sequencer (all phases incl. pre-TX pretone)
+#endif
+    // xm: two-digit menu jump timeout (2s)
+    if (gScreenToDisplay == DISPLAY_MENU && !gIsInSubMenu && gXmMenuJumpTimeout_500ms > 0) {
+        if (--gXmMenuJumpTimeout_500ms == 0)
+            gInputBoxIndex = 0;
+    }
 #ifdef ENABLE_MESSENGER_NOTIFICATION
     if (gPlayMSGRing) {
         gPlayMSGRingCount = 5;

@@ -46,6 +46,13 @@ static volatile uint32_t gGlobalSysTickCounter;
 
 void SystickHandler(void);
 
+// xm-k5-firmware: expose 10ms tick count (used by app/cecliveseek.c)
+uint32_t gGlobalSysTickCount_xm;
+uint32_t SCHEDULER_GetTickCount10ms(void)
+{
+	return gGlobalSysTickCounter;
+}
+
 // we come here every 10ms
 void SystickHandler(void)
 {

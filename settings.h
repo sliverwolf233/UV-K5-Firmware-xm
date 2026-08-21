@@ -97,6 +97,7 @@ enum ACTION_OPT_t {
     ACTION_OPT_SEND_CURRENT,
     ACTION_OPT_SEND_OTHER,
 #endif
+    ACTION_OPT_EMERGENCY,   // xm: three-layer emergency alarm (side key 1 long)
     ACTION_OPT_LEN
 };
 
